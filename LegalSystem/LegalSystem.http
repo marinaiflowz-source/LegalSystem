@@ -1,0 +1,6 @@
+@LegalSystem_HostAddress = http://localhost:5220
+
+GET {{LegalSystem_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
