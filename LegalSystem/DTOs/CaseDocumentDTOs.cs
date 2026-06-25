@@ -5,12 +5,14 @@
         public required long CaseId { get; set; }
         public required int ClassificationId { get; set; }
         public required IFormFile File { get; set; }
+        public string DocumentName { get; set; }
     }
 
     public class CaseDocumentUpdate
     {
-        public int? ClassificationId { get; set; }
+        //public int? ClassificationId { get; set; }
         public string? OriginalName { get; set; }
+        public string? DocumentName { get; set; }
     }
 
     public class CaseDocumentQuery
@@ -32,7 +34,7 @@
         public DateTime CreatedOn { get; set; }
         public long? CreatedById { get; set; }
         public string? CreatedByName { get; set; }
-
+        public string DocumentName { get; set; }
         public DateTime? UpdatedOn { get; set; }
         public long? UpdatedById { get; set; }
         public string? UpdatedByName { get; set; }

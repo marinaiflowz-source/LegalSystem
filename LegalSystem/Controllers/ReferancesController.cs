@@ -364,6 +364,162 @@ namespace LegalSystem.Controllers
             return StatusCode(result.Status, result);
         }
 
+        // ========================= Company =========================
+
+        [HttpGet("Company")]
+        [RequiredPermission]
+        [ProducesResponseType(typeof(Response<IEnumerable<BaseRefQuery>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetCompaniesAsync([FromQuery] BaseRefFilter filter)
+        {
+            var result = new Response<IEnumerable<BaseRefQuery>?>()
+            {
+                Data = null,
+                Status = (int)ResponseEnum.NotFound,
+                Title = "Not Found"
+            };
+
+            var rows = unitOfWork.RefCompanyRepository.GetAllQuerable()
+                .AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(filter.SearchText))
+                rows = rows.Where(e => (e.NameEN + e.NameAR).ToLower().Contains(filter.SearchText.ToLower()));
+
+            if (filter.IsActive.HasValue)
+                rows = rows.Where(e => e.IsActive == filter.IsActive.Value);
+
+            var data = await rows.Select(e => new BaseRefQuery
+            {
+                Id = e.Id,
+                NameEN = e.NameEN,
+                NameAR = e.NameAR,
+                Order = e.Order,
+                IsActive = e.IsActive
+            }).ToListAsync();
+
+            result.Status = (int)ResponseEnum.Succeeded;
+            result.Title = "Data Retrieved";
+            result.Data = data;
+
+            return StatusCode(result.Status, result);
+        }
+
+        [HttpPost("company/create")]
+        [RequiredPermission("modify.refs")]
+        [ProducesResponseType(typeof(Response<long>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> CreateCompanyAsync([FromBody] BaseReasonRefQuery model)
+        {
+            var currentUser = await httpContext.GetCurrentUser();
+            var result = new Response<long?>()
+            {
+                Data = null,
+                Status = (int)ResponseEnum.Created,
+                Title = "Created"
+            };
+
+            var entity = new RefCompany
+            {
+                NameEN = model.NameEN,
+                NameAR = model.NameAR,
+                Order = model.Order,
+                IsActive = model.IsActive
+            };
+
+            await unitOfWork.RefCompanyRepository.AddAsync(entity);
+            await unitOfWork.CompleteAsync();
+
+            result.Data = entity.Id;
+
+            var obj = new
+            {
+                Id = entity.Id
+            };
+
+            string json = JsonSerializer.Serialize(obj);
+            var entityDocument = new TblAuditLog
+            {
+                UserId = currentUser.Email,
+                Type = "create",
+                TableName = "company",
+                ActionType = "create",
+                DateTime = DateTime.Now,
+                OldValues = null,
+                NewValues = null,
+                AffectedColumns = null,
+                PrimaryKey = json,
+                IsArchived = false,
+
+            };
+
+            await unitOfWork.AuditLogRepository.AddAsync(entityDocument);
+
+            await unitOfWork.CompleteAsync();
+            return StatusCode(result.Status, result);
+        }
+
+        [HttpPost("company/{id}/update")]
+        [RequiredPermission("modify.refs")]
+        [ProducesResponseType(typeof(Response<long>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> UpdateCompanyAsync(long id, [FromBody] UpdateReasonBaseRefCommand model)
+        {
+            var currentUser = await httpContext.GetCurrentUser();
+            var result = new Response<bool>()
+            {
+                Data = false,
+                Status = (int)ResponseEnum.NotFound,
+                Title = "Not Found"
+            };
+
+            var entity = await unitOfWork.RefCompanyRepository.GetAllQuerable()
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (entity == null)
+                return StatusCode(result.Status, result);
+
+
+            entity.NameEN = string.IsNullOrWhiteSpace(model.NameEN) ? entity.NameEN : model.NameEN;
+            entity.NameAR = string.IsNullOrWhiteSpace(model.NameAR) ? entity.NameAR : model.NameAR;
+            entity.Order = model.Order.HasValue ? model.Order.Value : entity.Order;
+            entity.IsActive = model.IsActive.HasValue ? model.IsActive.Value : entity.IsActive;
+           
+
+            unitOfWork.RefCompanyRepository.Update(entity);
+            await unitOfWork.CompleteAsync();
+
+            result.Data = true;
+            result.Status = (int)ResponseEnum.Succeeded;
+            result.Title = "Created";
+            var obj = new
+            {
+                Id = entity.Id
+            };
+
+            string json = JsonSerializer.Serialize(obj);
+            var entityDocument = new TblAuditLog
+            {
+                UserId = currentUser.Email,
+                Type = "update",
+                TableName = "company",
+                ActionType = "update",
+                DateTime = DateTime.Now,
+                OldValues = null,
+                NewValues = null,
+                AffectedColumns = null,
+                PrimaryKey = json,
+                IsArchived = false,
+
+            };
+
+            await unitOfWork.AuditLogRepository.AddAsync(entityDocument);
+
+            await unitOfWork.CompleteAsync();
+
+
+            return StatusCode(result.Status, result);
+        }
+
         // ========================= CASE LEVELS =========================
 
         [HttpGet("case-levels")]

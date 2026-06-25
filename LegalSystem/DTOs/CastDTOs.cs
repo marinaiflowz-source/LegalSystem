@@ -33,7 +33,8 @@ namespace LegalSystem.DTOs
         public string? JointBuyerName { get; set; }
         public string? JointBuyerMobile { get; set; }
         public string? SoldPrice { get; set; }
-
+        public bool IsClaimant { get; set; }
+        public long? MainCaseId { get; set; }
     }
     public class UpdateCaseCommand
     {
@@ -51,7 +52,8 @@ namespace LegalSystem.DTOs
         public string? ExpertWitnessNameAr { get; set; }
         public string? UnitCode { get; set; }
         public string CaseName { get; set; }
-       
+        public bool IsClaimant { get; set; }
+        public long? MainCaseId { get; set; }
     }
     public class CloseCaseCommand
     {
@@ -99,6 +101,8 @@ namespace LegalSystem.DTOs
         public string? LeadID { get; set; }
         public DateOnly? ClosedDate { get; set; }
         public CASEENUM? ClosedStatus { get; set; }
+        public  bool IsClaimant { get; set; }
+        public SummaryView? MainCase { get; set; }
     }
     public class CaseDetailsQuery : CaseQuery
     {
@@ -134,5 +138,25 @@ namespace LegalSystem.DTOs
         public int? StatusId { get; set; }
         public int? ReliefSoughtId { get; set; }
         public string? LeadID { get; set; }
+        public long? MainCaseId { get; set; }
     }
-}
+
+
+    public class SubCaseFilter : IQueryObject
+    {
+        public string? SortBy { get; set; }
+        public bool IsAscending { get; set; }
+        public int Index { get; set; }
+        public int Size { get; set; }
+
+        public long? MainCaseId { get; set; }
+      
+    }
+
+    public class CaseList
+    {
+        public long Id { get; set; }
+        public string CaseName { get; set; } = string.Empty;
+    }
+
+    }

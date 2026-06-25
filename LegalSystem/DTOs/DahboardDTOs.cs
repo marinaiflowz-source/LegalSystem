@@ -63,5 +63,8 @@
         public int ClosedTotal { get; set; }
         public int TotalFilings { get; set; }
         public int WonCases { get; set; }
+        public int SettledCases { get; set; }
+        public int LostCases { get; set; }
+        
     }
 }

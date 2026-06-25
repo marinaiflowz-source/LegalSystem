@@ -17,19 +17,21 @@ namespace LegalSystem.Models
         public TblCase? Case { get; set; }
 
 
-        [Required]
-        public int ClassificationId { get; set; }
+        //[Required]
+        //public int ClassificationId { get; set; }
 
-        [ForeignKey(nameof(ClassificationId))]
-        [InverseProperty(nameof(RefDocumentClassification.Documents))]
-        [DeleteBehavior(DeleteBehavior.Restrict)]
-        public RefDocumentClassification? Classification { get; set; }
+        //[ForeignKey(nameof(ClassificationId))]
+        //[InverseProperty(nameof(RefDocumentClassification.Documents))]
+        //[DeleteBehavior(DeleteBehavior.Restrict)]
+        //public RefDocumentClassification? Classification { get; set; }
 
         [Required]
         public string OriginalName { get; set; } = string.Empty;
 
         [Required]
         public string FileName { get; set; } = string.Empty;
+
+        public  string DocumentName { get; set; } = string.Empty;
 
         public string? Url { get; set; }
         public double SizeMB { get; set; }

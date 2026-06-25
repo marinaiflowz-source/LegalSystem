@@ -95,6 +95,7 @@ namespace LegalSystem.DataAccess
         #endregion
 
         // Audit Logs
+        public DbSet<RefCompany> RefCompanies { get; set; }
         public DbSet<Reason> Reasons { get; set; }
         public DbSet<RefTaskType> RefTaskTypes { get; set; }
         public DbSet<TblAuditLog> TblAuditLogs { get; set; }

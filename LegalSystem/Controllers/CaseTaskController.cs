@@ -1,4 +1,5 @@
-﻿using LegalSystem.Attributes;
+﻿using ClosedXML.Excel;
+using LegalSystem.Attributes;
 using LegalSystem.DataAccess;
 using LegalSystem.DTOs;
 using LegalSystem.Enums;
@@ -743,5 +744,138 @@ namespace LegalSystem.Controllers
 
             return StatusCode(result.Status, result);
         }
+
+
+
+        [HttpGet("{caseId}/ExportCaseTask")]
+        [RequiredPermission("caseTasks.getByCase")]
+        [ProducesResponseType(typeof(Response<IEnumerable<CaseTaskQuery>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ExportCaseAsync(long caseId)
+        {
+            var currentUser = await httpContext.GetCurrentUser();
+            var result = new Response<IEnumerable<CaseTaskQuery>?>()
+            {
+                Data = null,
+                Status = (int)ResponseEnum.NotFound,
+                Title = "Not Found"
+            };
+
+            var rows = unitOfWork.CaseTaskRepository.GetAllQuerable()
+                .Include(e => e.AssignedUser).ThenInclude(e => e!.Type)
+                .Include(e => e.Case).ThenInclude(e => e!.Court)
+                .Include(e => e.Case).ThenInclude(e => e!.Team)
+                .Include(e => e.Priority)
+                .Include(e => e.Status)
+                .Include(e => e.Reason)
+                .Include(e => e.RefTaskType)
+                .Where(e => e.CaseId == caseId)
+                .Where(e => currentUser.IsSuperAdmin || e.Case!.Team.Select(t => t.UserId).Contains(currentUser.UserId))
+                .AsNoTracking();
+
+
+
+            // Projection
+            var data = await rows.Select(x => new CaseTaskQuery
+            {
+                Id = x.Id,
+                CaseId = x.CaseId,
+                Title = x.Title,
+                DueDate = x.DueDate,
+
+                Priority = x.Priority == null ? null : new SummaryView
+                {
+                    Id = x.Priority.Id,
+                    Name = x.Priority.NameEN,
+                },
+
+                Status = x.Status == null ? null : new SummaryView
+                {
+                    Id = x.Status.Id,
+                    Name = x.Status.NameEN,
+                },
+                Court = x.Case!.Court == null ? null : new SummaryView
+                {
+                    Id = x.Case.Court.Id,
+                    Name = x.Case.Court.NameEN,
+                },
+
+                User = x.AssignedUser == null ? null : new UserSummaryView
+                {
+                    Id = x.AssignedUser.Id,
+                    NameEn = x.AssignedUser.NameEn,
+                    NameAr = x.AssignedUser.NameAr,
+                    Email = x.AssignedUser.Email,
+                    Type = x.AssignedUser.Type!.NameEN
+                },
+                IsClosed = x.IsClosed,
+                CreatedOn = x.CreatedOn,
+                CreatedById = x.CreatedById,
+                CreatedByName = x.CreatedByName,
+
+                UpdatedOn = x.UpdatedOn,
+                UpdatedById = x.UpdatedById,
+                UpdatedByName = x.UpdatedByName,
+                Reason = x.Reason == null ? null : new ReasonView
+                {
+                    Id = x.Reason.Id,
+                    Name = x.Reason.NameEN,
+                },
+                TaskType = x.RefTaskType == null ? null : new RefTaskTypeView
+                {
+                    Id = x.RefTaskType.Id,
+                    Name = x.RefTaskType.NameEN,
+                },
+
+            }).ToListAsync();
+
+
+
+            var templatePath = Path.Combine(
+                         Directory.GetCurrentDirectory(),
+                                "Templates",
+                             "CaseTask.xlsx");
+
+            string outputPath = Path.Combine(
+                Path.GetTempPath(),
+                $"CasesTask_{Guid.NewGuid()}.xlsx");
+
+            System.IO.File.Copy(templatePath, outputPath, true);
+
+            using (var workbook = new XLWorkbook(outputPath))
+            {
+                var worksheet = workbook.Worksheet(1);
+
+                worksheet.Cell(2, 6).Value = DateTime.Now;
+                worksheet.Cell(2, 6).Style.DateFormat.Format = "dd-MM-yyyy HH:mm";
+
+                int row = 5;
+
+                foreach (var c in data)
+                {
+                    worksheet.Cell(row, 1).Value = c.Id;
+                    worksheet.Cell(row, 2).Value = c.Title;
+                    worksheet.Cell(row, 3).Value = c.DueDate;
+                    worksheet.Cell(row, 4).Value = c.Priority?.Name;
+                    worksheet.Cell(row, 5).Value = c.Status?.Name;
+                    worksheet.Cell(row, 6).Value = c.CreatedOn;
+                    row++;
+                }
+
+                worksheet.Columns().AdjustToContents();
+
+                workbook.Save();
+            }
+
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(outputPath);
+
+           
+            return PhysicalFile(outputPath, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                $"CaseTask_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
+           
+           
+        }
+
+
     }
 }

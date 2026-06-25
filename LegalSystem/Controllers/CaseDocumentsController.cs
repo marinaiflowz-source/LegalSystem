@@ -58,7 +58,7 @@ namespace LegalSystem.Controllers
             };
 
             var rows = unitOfWork.CaseDocumentRepository.GetAllQuerable()
-                .Include(e => e.Classification)
+                //.Include(e => e.Classification)
                 .Include(e => e.Case).ThenInclude(c => c!.Team)
                 .Where(e => currentUser.IsSuperAdmin || e.Case!.Team.Select(t => t.UserId).Contains(currentUser.UserId))
                 .AsNoTracking();
@@ -70,8 +70,8 @@ namespace LegalSystem.Controllers
                     (x.OriginalName).Contains(filter.SearchText));
             }
 
-            if (filter.ClassificationId.HasValue)
-                rows = rows.Where(x => x.ClassificationId == filter.ClassificationId.Value);
+            //if (filter.ClassificationId.HasValue)
+            //    rows = rows.Where(x => x.ClassificationId == filter.ClassificationId.Value);
 
             var totalItems = await rows.CountAsync();
 
@@ -90,7 +90,7 @@ namespace LegalSystem.Controllers
 
             rows = filter.SortBy switch
             {
-                "ClassificationId" => filter.IsAscending ? rows.OrderBy(x => x.ClassificationId) : rows.OrderByDescending(x => x.ClassificationId),
+                //"ClassificationId" => filter.IsAscending ? rows.OrderBy(x => x.ClassificationId) : rows.OrderByDescending(x => x.ClassificationId),
                 "CreatedOn" => filter.IsAscending ? rows.OrderBy(x => x.CreatedOn) : rows.OrderByDescending(x => x.CreatedOn),
                 _ => filter.IsAscending ? rows.OrderBy(x => x.Id) : rows.OrderByDescending(x => x.Id),
             };
@@ -111,11 +111,11 @@ namespace LegalSystem.Controllers
                  CaseId = x.CaseId,
                  CaseName=x.Case.CaseName,
                  CaseNumber="C"+ x.CaseId,
-                 Classification = x.Classification == null ? null : new SummaryView
-                 {
-                     Id = x.Classification.Id,
-                     Name = x.Classification.NameEN,
-                 },
+                 //Classification = x.Classification == null ? null : new SummaryView
+                 //{
+                 //    Id = x.Classification.Id,
+                 //    Name = x.Classification.NameEN,
+                 //},
 
                  OriginalName = x.OriginalName,
                  FileName = x.FileName,
@@ -129,6 +129,7 @@ namespace LegalSystem.Controllers
                  UpdatedOn = x.UpdatedOn,
                  UpdatedById = x.UpdatedById,
                  UpdatedByName = x.UpdatedByName,
+                 DocumentName=x.DocumentName
              }
             ).ToList();
 
@@ -172,7 +173,7 @@ namespace LegalSystem.Controllers
             };
 
             var rows = unitOfWork.CaseDocumentRepository.GetAllQuerable()
-                .Include(e => e.Classification)
+                //.Include(e => e.Classification)
                 .Include(e => e.Case).ThenInclude(c => c!.Team)
                 .Where(e => e.CaseId == caseId)
                 .Where(e => currentUser.IsSuperAdmin || e.Case!.Team.Select(t => t.UserId).Contains(currentUser.UserId))
@@ -183,17 +184,17 @@ namespace LegalSystem.Controllers
                 Id = x.Id,
                 CaseId = x.CaseId,
 
-                Classification = x.Classification == null ? null : new SummaryView
-                {
-                    Id = x.Classification.Id,
-                    Name = x.Classification.NameEN,
-                },
+                //Classification = x.Classification == null ? null : new SummaryView
+                //{
+                //    Id = x.Classification.Id,
+                //    Name = x.Classification.NameEN,
+                //},
 
                 OriginalName = x.OriginalName,
                 FileName = x.FileName,
                 Url = x.Url,
                 SizeMB = x.SizeMB,
-
+                DocumentName=x.DocumentName,
                 CreatedOn = x.CreatedOn,
                 CreatedById = x.CreatedById,
                 CreatedByName = x.CreatedByName,
@@ -332,12 +333,12 @@ namespace LegalSystem.Controllers
             var entity = new TblCaseDocument
             {
                 CaseId = model.CaseId,
-                ClassificationId = model.ClassificationId,
+                //ClassificationId = model.ClassificationId,
                 OriginalName = model.File.FileName,
                 FileName = fileName,
                 Url = baseUrl,
                 SizeMB = (double)model.File.Length / (1024 * 1024),
-
+                DocumentName=model.DocumentName,
                 CreatedOn = DateTime.Now,
                 CreatedById = currentUser.UserId,
                 CreatedByName = currentUser.UserName,
@@ -440,11 +441,32 @@ namespace LegalSystem.Controllers
                 
             }
 
-            if (model.ClassificationId.HasValue &&
-                entity.ClassificationId != model.ClassificationId.Value)
+            //if (model.ClassificationId.HasValue &&
+            //    entity.ClassificationId != model.ClassificationId.Value)
+            //{
+            //    AddAuditLog("Classification", refs.DocumentClassifications.FirstOrDefault(r => r.Id == entity.ClassificationId)?.NameEN, refs.DocumentClassifications.FirstOrDefault(r => r.Id == model.ClassificationId.Value)?.NameEN);
+            //    entity.ClassificationId = model.ClassificationId.Value;
+            //    auditLogs.AddRange(new TblAuditLog
+            //    {
+            //        UserId = currentUser.Email,
+            //        Type = "update",
+            //        TableName = "CaseDocument",
+            //        ActionType = "update",
+            //        DateTime = DateTime.Now,
+            //        OldValues = entity.ClassificationId.ToString(),
+            //        NewValues = model.ClassificationId.Value.ToString(),
+            //        AffectedColumns = null,
+            //        PrimaryKey = null,
+            //        IsArchived = false,
+
+            //    });
+            //}
+
+            if (!string.IsNullOrWhiteSpace(model.DocumentName) &&
+                entity.DocumentName != model.DocumentName)
             {
-                AddAuditLog("Classification", refs.DocumentClassifications.FirstOrDefault(r => r.Id == entity.ClassificationId)?.NameEN, refs.DocumentClassifications.FirstOrDefault(r => r.Id == model.ClassificationId.Value)?.NameEN);
-                entity.ClassificationId = model.ClassificationId.Value;
+                AddAuditLog("DocumentName", entity.DocumentName, model.DocumentName);
+                entity.DocumentName = model.DocumentName;
                 auditLogs.AddRange(new TblAuditLog
                 {
                     UserId = currentUser.Email,
@@ -452,15 +474,14 @@ namespace LegalSystem.Controllers
                     TableName = "CaseDocument",
                     ActionType = "update",
                     DateTime = DateTime.Now,
-                    OldValues = entity.ClassificationId.ToString(),
-                    NewValues = model.ClassificationId.Value.ToString(),
+                    OldValues = entity.DocumentName.ToString(),
+                    NewValues = model.DocumentName.ToString(),
                     AffectedColumns = null,
                     PrimaryKey = null,
                     IsArchived = false,
 
                 });
             }
-
             if (!string.IsNullOrWhiteSpace(model.OriginalName) &&
                 entity.OriginalName != model.OriginalName)
             {
@@ -528,7 +549,7 @@ namespace LegalSystem.Controllers
             await unitOfWork.CaseAuditLogRepository.AddAsync(new TblCaseAuditLog
             {
                 CaseId = entity.CaseId,
-                Comment = $"Case document deleted. File: {entity.OriginalName}, ClassificationId: {entity.ClassificationId}",
+                Comment = $"Case document deleted. File: {entity.OriginalName}",
                 CreatedOn = DateTime.Now,
                 CreatedById = currentUser.UserId,
                 CreatedByName = currentUser.UserName,

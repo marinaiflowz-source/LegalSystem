@@ -24,7 +24,7 @@ namespace LegalSystem.Models
         public RefCaseType? Type { get; set; }
 
         [Required]
-        public int LevelId { get; set; }
+        public int? LevelId { get; set; }
 
         [ForeignKey(nameof(LevelId))]
         [InverseProperty(nameof(RefCaseLevel.Cases))]
@@ -78,10 +78,14 @@ namespace LegalSystem.Models
         public string? JointBuyerMobile { get; set; }
         public string? SoldPrice { get; set; }
 
+        public bool IsClaimant { get; set; }=false;
         public string? LeadID { get; set; }
         public CASEENUM? ClosedStatus { get; set; }
         public DateOnly? ClosedDate { get; set; }
+        public long? MainCaseId { get; set; }
 
+        [ForeignKey(nameof(MainCaseId))]
+        public TblCase? MainCase { get; set; }
         public virtual ICollection<TblCaseTeam> Team { get; set; } = new List<TblCaseTeam>();
         public virtual ICollection<TblCaseTask> Tasks { get; set; } = new List<TblCaseTask>();
         public virtual ICollection<TblCaseDocument> Documents { get; set; } = new List<TblCaseDocument>();

@@ -17,7 +17,7 @@ namespace LegalSystem.Services
             var data = new RefefancesQuery();
 
             data.CaseTypes = await unitOfWork.RefCaseTypeRepository.GetAllQuerable()
-                .AsNoTracking().Select(e => new BaseRefQuery
+                .AsNoTracking().Where(e => e.IsActive==true).Select(e => new BaseRefQuery
                 {
                     Id = e.Id,
                     NameEN = e.NameEN,
@@ -27,7 +27,7 @@ namespace LegalSystem.Services
                 }).ToListAsync();
 
             data.CaseLevels = await unitOfWork.RefCaseLevelRepository.GetAllQuerable()
-                .AsNoTracking().Select(e => new BaseRefQuery
+                .AsNoTracking().Where(e => e.IsActive == true).Select(e => new BaseRefQuery
                 {
                     Id = e.Id,
                     NameEN = e.NameEN,
@@ -37,7 +37,7 @@ namespace LegalSystem.Services
                 }).ToListAsync();
 
             data.CaseStatuses = await unitOfWork.RefCaseStatusRepository.GetAllQuerable()
-                .AsNoTracking().Select(e => new BaseRefQuery
+                .AsNoTracking().Where(e => e.IsActive == true).Select(e => new BaseRefQuery
                 {
                     Id = e.Id,
                     NameEN = e.NameEN,
@@ -47,7 +47,7 @@ namespace LegalSystem.Services
                 }).ToListAsync();
 
             data.Courts = await unitOfWork.RefCourtRepository.GetAllQuerable()
-                .AsNoTracking().Select(e => new BaseRefQuery
+                .AsNoTracking().Where(e => e.IsActive == true).Select(e => new BaseRefQuery
                 {
                     Id = e.Id,
                     NameEN = e.NameEN,
@@ -57,7 +57,7 @@ namespace LegalSystem.Services
                 }).ToListAsync();
 
             data.ReliefSoughts = await unitOfWork.RefReliefSoughtRepository.GetAllQuerable()
-                .AsNoTracking().Select(e => new BaseRefQuery
+                .AsNoTracking().Where(e => e.IsActive == true).Select(e => new BaseRefQuery
                 {
                     Id = e.Id,
                     NameEN = e.NameEN,
@@ -67,7 +67,7 @@ namespace LegalSystem.Services
                 }).ToListAsync();
 
             data.UserTypes = await unitOfWork.RefUserTypeRepository.GetAllQuerable()
-                .AsNoTracking().Select(e => new BaseRefQuery
+                .AsNoTracking().Where(e => e.IsActive == true).Select(e => new BaseRefQuery
                 {
                     Id = e.Id,
                     NameEN = e.NameEN,
@@ -77,7 +77,7 @@ namespace LegalSystem.Services
                 }).ToListAsync();
 
             data.TaskPriorities = await unitOfWork.RefTaskPriorityRepository.GetAllQuerable()
-                .AsNoTracking().Select(e => new BaseRefQuery
+                .AsNoTracking().Where(e => e.IsActive == true).Select(e => new BaseRefQuery
                 {
                     Id = e.Id,
                     NameEN = e.NameEN,
@@ -87,7 +87,7 @@ namespace LegalSystem.Services
                 }).ToListAsync();
 
             data.TaskStatuses = await unitOfWork.RefTaskStatusRepository.GetAllQuerable()
-                .AsNoTracking().Select(e => new BaseRefQuery
+                .AsNoTracking().Where(e => e.IsActive == true).Select(e => new BaseRefQuery
                 {
                     Id = e.Id,
                     NameEN = e.NameEN,
@@ -97,7 +97,7 @@ namespace LegalSystem.Services
                 }).ToListAsync();
 
             data.DocumentClassifications = await unitOfWork.RefDocumentClassificationRepository.GetAllQuerable()
-                .AsNoTracking().Select(e => new BaseRefQuery
+                .AsNoTracking().Where(e => e.IsActive == true).Select(e => new BaseRefQuery
                 {
                     Id = e.Id,
                     NameEN = e.NameEN,
@@ -107,7 +107,7 @@ namespace LegalSystem.Services
                 }).ToListAsync();
 
             data.EventTypes = await unitOfWork.RefEventTypeRepository.GetAllQuerable()
-                .AsNoTracking().Select(e => new BaseRefQuery
+                .AsNoTracking().Where(e => e.IsActive == true).Select(e => new BaseRefQuery
                 {
                     Id = e.Id,
                     NameEN = e.NameEN,
@@ -117,7 +117,7 @@ namespace LegalSystem.Services
                 }).ToListAsync();
 
             data.Reasons = await unitOfWork.ReasonRepository.GetAllQuerable()
-               .AsNoTracking().Select(e => new BaseRefQuery
+               .AsNoTracking().Where(e => e.IsActive == true).Select(e => new BaseRefQuery
                {
                    Id = e.Id,
                    NameEN = e.NameEN,
@@ -127,7 +127,7 @@ namespace LegalSystem.Services
                }).ToListAsync();
 
             data.TaskTypes = await unitOfWork.RefTaskTypeRepository.GetAllQuerable()
-              .AsNoTracking().Select(e => new BaseRefQuery
+              .AsNoTracking().Where(e => e.IsActive == true).Select(e => new BaseRefQuery
               {
                   Id = e.Id,
                   NameEN = e.NameEN,
@@ -136,6 +136,16 @@ namespace LegalSystem.Services
                   IsActive = e.IsActive,
               }).ToListAsync();
 
+
+            data.Companies = await unitOfWork.RefCompanyRepository.GetAllQuerable()
+             .AsNoTracking().Where(e => e.IsActive == true).Select(e => new BaseRefQuery
+             {
+                 Id = e.Id,
+                 NameEN = e.NameEN,
+                 NameAR = e.NameAR,
+                 Order = e.Order,
+                 IsActive = e.IsActive,
+             }).ToListAsync();
             return data;
         }
     }

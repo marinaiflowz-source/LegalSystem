@@ -52,7 +52,8 @@ namespace LegalSystem.Controllers
                 .Include(e => e.Status)
                 .Include(e => e.ReliefSought)
                 .Include(e => e.Team)
-                .Where(e => currentUser.IsSuperAdmin || e.Team.Select(t => t.UserId).Contains(currentUser.UserId))
+                .Include(x => x.MainCase)
+                .Where(e => currentUser.IsSuperAdmin || e.CreatedById == currentUser.UserId)
                 .AsNoTracking();
 
             // Filtering
@@ -78,6 +79,9 @@ namespace LegalSystem.Controllers
                 rows = rows.Where(x => x.ReliefSoughtId == filter.ReliefSoughtId.Value);
             if (!string.IsNullOrEmpty(filter.LeadID))
                 rows = rows.Where(x => x.LeadID.Contains(filter.LeadID));
+
+            if (filter.MainCaseId.HasValue)
+                rows = rows.Where(x => x.MainCaseId == filter.MainCaseId.Value);
 
             var totalItems = await rows.CountAsync();
 
@@ -213,7 +217,13 @@ namespace LegalSystem.Controllers
                     SoldPrice =x.Case.SoldPrice,
                     LeadID =x.Case.LeadID,
                     ClosedDate = x.Case.ClosedDate,
-                    ClosedStatus = x.Case.ClosedStatus
+                    ClosedStatus = x.Case.ClosedStatus,
+                    IsClaimant=x.Case.IsClaimant,
+                    MainCase = x.Case.MainCase == null ? null : new SummaryView
+                                 {
+                                 Id = (int)x.Case.MainCase.Id,
+                                 Name = x.Case.MainCase.CaseName
+                                 },
                 };
                     }).ToList();
 
@@ -265,6 +275,7 @@ namespace LegalSystem.Controllers
                 .Include(x => x.ReliefSought)
                 .Include(x => x.Notes)
                 .Include(e => e.Team)
+                .Include(e => e.MainCase)
                 .Where(e => currentUser.IsSuperAdmin || e.Team.Select(t => t.UserId).Contains(currentUser.UserId))
                 .AsNoTracking()
                 .FirstOrDefaultAsync();
@@ -374,7 +385,13 @@ namespace LegalSystem.Controllers
                 JointBuyerName = entity.JointBuyerName,
                 JointBuyerMobile = entity.JointBuyerMobile,
                 SoldPrice = entity.SoldPrice,
-                LeadID = entity.LeadID
+                LeadID = entity.LeadID,
+                IsClaimant = entity.IsClaimant,
+                MainCase = entity.MainCase == null ? null : new SummaryView
+                {
+                    Id = (int)entity.MainCase.Id,
+                    Name = entity.MainCase.CaseName
+                },
             };
 
             result.Status = (int)ResponseEnum.Succeeded;
@@ -540,7 +557,8 @@ namespace LegalSystem.Controllers
                 CreatedOn = createdOn,
                 CreatedById = currentUser.UserId,
                 CreatedByName = currentUser.UserName,
-                
+                MainCaseId=model.MainCaseId,
+                IsClaimant=model.IsClaimant
             };
 
             await unitOfWork.CaseRepository.AddAsync(entity);
@@ -899,8 +917,31 @@ namespace LegalSystem.Controllers
                 });
                
             }
+            if (model.MainCaseId.HasValue &&
+                entity.MainCaseId != model.MainCaseId.Value)
+            {
+                AddAuditLog("maincase", entity.MainCaseId, model.MainCaseId.Value);
+                entity.MainCaseId = model.MainCaseId.Value;
+                auditLogs.Add(new TblAuditLog
+                {
+                    UserId = currentUser.Email,
+                    Type = "update",
+                    TableName = "case",
+                    ActionType = "update",
+                    DateTime = DateTime.Now,
+                    OldValues = entity.MainCaseId.ToString(),
+                    NewValues = model.MainCaseId.ToString(),
+                    AffectedColumns = null,
+                    PrimaryKey = json,
+                    IsArchived = false,
 
-                entity.UpdatedOn = updatedOn;
+                });
+            }
+
+
+
+            entity.IsClaimant = model.IsClaimant;
+            entity.UpdatedOn = updatedOn;
             entity.UpdatedById = currentUser.UserId;
             entity.UpdatedByName = currentUser.UserName;
 
@@ -1372,7 +1413,7 @@ namespace LegalSystem.Controllers
 
 
         [HttpGet("ExportCasesDashBoard")]
-        public async Task<IActionResult> ExportCasesDashBoardAsync()
+        public async Task<IActionResult> ExportCasesDashBoardAsync([FromQuery] CaseFilter filter)
         {
             var currentUser = await httpContext.GetCurrentUser();
 
@@ -1384,8 +1425,33 @@ namespace LegalSystem.Controllers
                 .Include(e => e.ReliefSought)
                 .Include(e => e.Team)
                 .Where(e => currentUser.IsSuperAdmin ||
-                            e.Team.Select(t => t.UserId).Contains(currentUser.UserId))
+                          e.CreatedById == currentUser.UserId)
                 .AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(filter.SearchText))
+            {
+                rows = rows.Where(x =>
+                    (x.Claimant + x.Defendant + (x.UnitCode ?? "")).Contains(filter.SearchText));
+            }
+
+            if (filter.TypeId.HasValue)
+                rows = rows.Where(x => x.TypeId == filter.TypeId.Value);
+
+            if (filter.LevelId.HasValue)
+                rows = rows.Where(x => x.LevelId == filter.LevelId.Value);
+
+            if (filter.CourtId.HasValue)
+                rows = rows.Where(x => x.CourtId == filter.CourtId.Value);
+
+            if (filter.StatusId.HasValue)
+                rows = rows.Where(x => x.StatusId == filter.StatusId.Value);
+
+            if (filter.ReliefSoughtId.HasValue)
+                rows = rows.Where(x => x.ReliefSoughtId == filter.ReliefSoughtId.Value);
+            if (!string.IsNullOrEmpty(filter.LeadID))
+                rows = rows.Where(x => x.LeadID.Contains(filter.LeadID));
+            if (filter.MainCaseId.HasValue)
+                rows = rows.Where(x => x.MainCaseId == filter.MainCaseId.Value);
 
             var workflows = await unitOfWork.WorkflowRepository
                 .GetAllQuerable()
@@ -1456,11 +1522,249 @@ namespace LegalSystem.Controllers
 
             return PhysicalFile(outputPath,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                 $"CasesDashboard_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
-            //    return File(
-            //        fileBytes,
-            //        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            //        $"CasesDashboard_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
-            //}
+           
+        }
+
+
+        [HttpGet("SubCases")]
+        [RequiredPermission("cases.get")]
+        [ProducesResponseType(typeof(QueryResult<CaseQuery>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SubCasesAsync([FromQuery] SubCaseFilter filter)
+        {
+            var currentUser = await httpContext.GetCurrentUser();
+
+            var result = new QueryResult<CaseQuery>()
+            {
+                Status = (int)ResponseEnum.Succeeded,
+                Title = "Data Retrieved"
+            };
+
+            var rows = unitOfWork.CaseRepository.GetAllQuerable()
+                .Include(e => e.Type)
+                .Include(e => e.Level)
+                .Include(e => e.Court)
+                .Include(e => e.Status)
+                .Include(e => e.ReliefSought)
+                .Include(e => e.Team)
+                .Where(e => (currentUser.IsSuperAdmin || e.CreatedById==currentUser.UserId) )
+                .AsNoTracking();
+
+            // Filtering
+          
+
+            if (filter.MainCaseId.HasValue)
+                rows = rows.Where(x => x.MainCaseId == filter.MainCaseId.Value);
+
+
+            var totalItems = await rows.CountAsync();
+
+            if (totalItems <= 0)
+            {
+                result.Title = "No Data Found";
+                return StatusCode(result.Status, result);
+            }
+
+            // Ordering
+            if (string.IsNullOrWhiteSpace(filter.SortBy))
+            {
+                filter.SortBy = "Id";
+                filter.IsAscending = false;
+            }
+
+            rows = filter.SortBy switch
+            {
+                "Claimant" => filter.IsAscending ? rows.OrderBy(x => x.Claimant) : rows.OrderByDescending(x => x.Claimant),
+                "Defendant" => filter.IsAscending ? rows.OrderBy(x => x.Defendant) : rows.OrderByDescending(x => x.Defendant),
+                "CreatedOn" => filter.IsAscending ? rows.OrderBy(x => x.CreatedOn) : rows.OrderByDescending(x => x.CreatedOn),
+                _ => filter.IsAscending ? rows.OrderBy(x => x.Id) : rows.OrderByDescending(x => x.Id),
+            };
+
+            // Paging
+            result.Data.Count = totalItems;
+
+            if (filter.Size > 0)
+            {
+                rows = rows.Skip(filter.Index * filter.Size).Take(filter.Size);
+            }
+
+            // Load workflow steps
+            //var workflows = await unitOfWork.WorkflowRepository
+            //    .GetAllQuerable()
+            //    .Include(x => x.CaseStatus)
+            //    .ToListAsync();
+
+            // Projection
+            var data = await rows.Select(x => new
+            {
+                Case = x,
+            }).ToListAsync();
+
+            result.Data.Rows = data.Select(x =>
+            {
+                //var currentWorkflow = workflows
+                //    .Where(w => w.CaseTypeId == x.Case.TypeId)
+                //    .OrderBy(w => w.Order)
+                //    .ToList();
+
+                //var currentStep = currentWorkflow
+                //    .FirstOrDefault(w => w.CaseStatusId == x.Case.StatusId);
+
+                //var nextStep = currentStep == null
+                //    ? null
+                //    : currentWorkflow.FirstOrDefault(w => w.Order == currentStep.Order + 1);
+
+                return new CaseQuery
+                {
+                    Id = x.Case.Id,
+                    Claimant = x.Case.Claimant,
+                    Defendant = x.Case.Defendant,
+                    ClaimValue = x.Case.ClaimValue,
+                    Summary = x.Case.Summary,
+                    UnitCode = x.Case.UnitCode,
+
+                    Type = new SummaryView
+                    {
+                        Id = x.Case.Type!.Id,
+                        Name = x.Case.Type.NameEN
+                    },
+
+                    Level = new SummaryView
+                    {
+                        Id = x.Case.Level!.Id,
+                        Name = x.Case.Level.NameEN
+                    },
+
+                    Court = new SummaryView
+                    {
+                        Id = x.Case.Court!.Id,
+                        Name = x.Case.Court.NameEN
+                    },
+
+                    Status = new SummaryView
+                    {
+                        Id = x.Case.Status!.Id,
+                        Name = x.Case.Status.NameEN
+                    },
+
+                    //NextStatus = nextStep != null
+                    //    ? new SummaryView
+                    //    {
+                    //        Id = nextStep.CaseStatusId,
+                    //        Name = nextStep.CaseStatus!.NameEN
+                    //    }
+                    //    : null,
+
+                    ReliefSought = new SummaryView
+                    {
+                        Id = x.Case.ReliefSought!.Id,
+                        Name = x.Case.ReliefSought.NameEN
+                    },
+                    ExpertWitness = x.Case.ExpertWitnessNameEn,
+                    //ExpertWitness = x.Case.ExpertWitnessId.HasValue
+                    //    ? new SummaryView
+                    //    {
+                    //        Id = x.Case.ExpertWitnessId.Value,
+                    //        Name = x.Case.ExpertWitnessNameEn ?? string.Empty
+                    //    }
+                    //    : null,
+
+                    IsCompleted = x.Case.IsCompleted,
+
+                    CreatedOn = x.Case.CreatedOn,
+                    CreatedById = x.Case.CreatedById,
+                    CreatedByName = x.Case.CreatedByName,
+
+                    UpdatedOn = x.Case.UpdatedOn,
+                    UpdatedById = x.Case.UpdatedById,
+                    UpdatedByName = x.Case.UpdatedByName,
+                    CaseName = x.Case.CaseName,
+                    ProjectCode = x.Case.ProjectCode,
+                    ProjectName = x.Case.ProjectName,
+                    UnitNumber = x.Case.UnitNumber,
+                    UnitType = x.Case.UnitType,
+                    LeadStatus = x.Case.LeadStatus,
+                    BuyerName = x.Case.BuyerName,
+                    BuyerNumber = x.Case.BuyerNumber,
+                    JointBuyerName = x.Case.JointBuyerName,
+                    JointBuyerMobile = x.Case.JointBuyerMobile,
+                    SoldPrice = x.Case.SoldPrice,
+                    LeadID = x.Case.LeadID,
+                    ClosedDate = x.Case.ClosedDate,
+                    ClosedStatus = x.Case.ClosedStatus,
+                    IsClaimant = x.Case.IsClaimant
+                };
+            }).ToList();
+
+
+
+            //var entityDocument = new TblAuditLog
+            //{
+            //    UserId = currentUser.Email,
+            //    Type = "GetAll",
+            //    TableName = "cases",
+            //    ActionType = "GetAll",
+            //    DateTime = DateTime.Now,
+            //    OldValues = null,
+            //    NewValues = null,
+            //    AffectedColumns = null,
+            //    PrimaryKey = null,
+            //    IsArchived = false,
+
+            //};
+
+            //await unitOfWork.AuditLogRepository.AddAsync(entityDocument);
+
+            //await unitOfWork.CompleteAsync();
+            return StatusCode(result.Status, result);
+        }
+
+
+        [HttpGet("GetList")]
+        [RequiredPermission("cases.get")]
+        [ProducesResponseType(typeof(QueryResult<CaseQuery>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetListAsync([FromQuery] CaseFilter filter)
+        {
+            var currentUser = await httpContext.GetCurrentUser();
+
+            var result = new QueryResult<CaseList>()
+            {
+                Status = (int)ResponseEnum.Succeeded,
+                Title = "Data Retrieved"
+            };
+
+            var rows = unitOfWork.CaseRepository.GetAllQuerable()
+                .Include(e => e.Type)
+                .Include(e => e.Level)
+                .Include(e => e.Court)
+                .Include(e => e.Status)
+                .Include(e => e.ReliefSought)
+                .Include(e => e.Team)
+                .Where(e => currentUser.IsSuperAdmin || e.Team.Select(t => t.UserId).Contains(currentUser.UserId))
+                .AsNoTracking();
+
+           
+
+         
+            // Projection
+            var data = await rows.Select(x => new
+            {
+                Case = x,
+            }).ToListAsync();
+
+            result.Data.Rows = data.Select(x =>
+            {
+               
+                return new CaseList
+                {
+                    Id = x.Case.Id,
+                    CaseName = x.Case.CaseName,
+                };
+            }).ToList();
+
+           
+            return StatusCode(result.Status, result);
         }
 
     }

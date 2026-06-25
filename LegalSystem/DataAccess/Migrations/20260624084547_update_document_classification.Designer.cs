@@ -4,6 +4,7 @@ using LegalSystem.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LegalSystem.DataAccess.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260624084547_update_document_classification")]
+    partial class update_document_classification
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -499,9 +502,6 @@ namespace LegalSystem.DataAccess.Migrations
                     b.Property<int>("LevelId")
                         .HasColumnType("int");
 
-                    b.Property<long?>("MainCaseId")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("ProjectCode")
                         .HasColumnType("nvarchar(max)");
 
@@ -546,8 +546,6 @@ namespace LegalSystem.DataAccess.Migrations
                     b.HasIndex("CourtId");
 
                     b.HasIndex("LevelId");
-
-                    b.HasIndex("MainCaseId");
 
                     b.HasIndex("ReliefSoughtId");
 
@@ -965,10 +963,6 @@ namespace LegalSystem.DataAccess.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("LegalSystem.Models.TblCase", "MainCase")
-                        .WithMany()
-                        .HasForeignKey("MainCaseId");
-
                     b.HasOne("LegalSystem.Models.RefReliefSought", "ReliefSought")
                         .WithMany("Cases")
                         .HasForeignKey("ReliefSoughtId")
@@ -990,8 +984,6 @@ namespace LegalSystem.DataAccess.Migrations
                     b.Navigation("Court");
 
                     b.Navigation("Level");
-
-                    b.Navigation("MainCase");
 
                     b.Navigation("ReliefSought");
 

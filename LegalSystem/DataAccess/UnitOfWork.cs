@@ -8,6 +8,7 @@ namespace LegalSystem.DataAccess
         private readonly ApplicationDbContext dbContext;
 
         // Def
+        private RefCompanyRepository? refCompanyRepository;
         private AuditLogRepository? auditLogRepository;
         private ReasonRepository? reasonRepository;
         private CaseRepository? caseRepository;
@@ -38,6 +39,14 @@ namespace LegalSystem.DataAccess
             this.dbContext = dbContext;
         }
 
+        public RefCompanyRepository RefCompanyRepository
+        {
+            get
+            {
+                refCompanyRepository ??= new RefCompanyRepository(dbContext);
+                return refCompanyRepository!;
+            }
+        }
 
         public AuditLogRepository AuditLogRepository
         {

@@ -41,6 +41,8 @@ namespace LegalSystem.DTOs
         public IReadOnlyList<BaseRefQuery> EventTypes { get; set; } = new List<BaseRefQuery>();
         public IReadOnlyList<BaseRefQuery> Reasons { get; set; } = new List<BaseRefQuery>();
         public IReadOnlyList<BaseRefQuery> TaskTypes { get; set; } = new List<BaseRefQuery>();
+        public IReadOnlyList<BaseRefQuery> Companies { get; set; } = new List<BaseRefQuery>();
+        
     }
 
     public class BaseRefQuery

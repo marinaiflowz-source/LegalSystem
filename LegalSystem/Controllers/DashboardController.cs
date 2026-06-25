@@ -318,7 +318,13 @@ namespace LegalSystem.Controllers
                            ClosedTotal = g.Count(x => x.IsCompleted),
                            WonCases = g.Count(x =>
                           x.IsCompleted &&
-                          x.ClosedStatus == CASEENUM.WON)
+                          x.ClosedStatus == CASEENUM.WON),
+                            SettledCases = g.Count(x =>
+                                           x.IsCompleted &&
+                                           x.ClosedStatus == CASEENUM.SETTLED),
+                           LostCases = g.Count(x =>
+                                         x.IsCompleted &&
+                                         x.ClosedStatus == CASEENUM.LOST)
                        })
                        .OrderBy(x => x.MonthNumber)
                        .ToListAsync();
@@ -336,7 +342,9 @@ namespace LegalSystem.Controllers
                         Month = date.ToString("MMM"),
                         TotalFilings = 0,
                         ClosedTotal = 0,
-                        WonCases = 0
+                        WonCases = 0,
+                        SettledCases=0,
+                        LostCases=0
                     };
                 })
                 .ToList();
@@ -352,6 +360,8 @@ namespace LegalSystem.Controllers
                     month.TotalFilings = dbMonth.TotalFilings;
                     month.ClosedTotal = dbMonth.ClosedTotal;
                     month.WonCases = dbMonth.WonCases;
+                    month.SettledCases = dbMonth.SettledCases;
+                    month.LostCases = dbMonth.LostCases;
                 }
             }
 
