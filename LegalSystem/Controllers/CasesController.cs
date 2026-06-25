@@ -480,6 +480,15 @@ namespace LegalSystem.Controllers
                 Status = (int)ResponseEnum.Created,
                 Title = "Created"
             };
+
+            var casename = await unitOfWork.CaseRepository.GetAllQuerable().Where(x => x.CaseName == model.CaseName).FirstOrDefaultAsync();
+            if (casename is not null)
+            {
+                result.Status = (int)ResponseEnum.Failed;
+                result.Title = "you have another case by the same name";
+                return StatusCode(result.Status, result);
+            }
+
             var LegalAdvisorUser = await unitOfWork.UserRepository.GetAllQuerable().AsNoTracking().FirstOrDefaultAsync(e => e.TypeId == 1);
             if (LegalAdvisorUser is null)
             {
@@ -530,7 +539,7 @@ namespace LegalSystem.Controllers
                 LeadStatus =model.LeadStatus,
                 BuyerName =model.BuyerName,
                 BuyerNumber =model.BuyerNumber,
-                JointBuyerName =model.BuyerNumber,
+                JointBuyerName =model.JointBuyerName,
                 JointBuyerMobile =model.JointBuyerMobile,
                 SoldPrice =model.SoldPrice,
                 AuditLogs = new List<TblCaseAuditLog>

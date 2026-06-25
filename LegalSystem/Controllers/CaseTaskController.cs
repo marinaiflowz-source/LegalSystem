@@ -307,6 +307,9 @@ namespace LegalSystem.Controllers
                 Title = "Created"
             };
 
+          
+
+
             var caseTeamIds = unitOfWork.CaseTeamRepository.GetAllQuerable().Where(e => e.CaseId == model.CaseId).Select(e => e.UserId);
             if (!currentUser.IsSuperAdmin && !caseTeamIds.Contains(currentUser.UserId))
             {
