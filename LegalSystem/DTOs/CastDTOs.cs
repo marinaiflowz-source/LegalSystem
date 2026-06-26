@@ -9,7 +9,7 @@ namespace LegalSystem.DTOs
         public required string Defendant { get; set; }
         //public required int StatusId { get; set; }
         public required int TypeId { get; set; }
-        public required int LevelId { get; set; }
+        //public required int LevelId { get; set; }
         public required int StatusId { get; set; }
         public required int CourtId { get; set; }
         public required decimal ClaimValue { get; set; }
@@ -42,7 +42,7 @@ namespace LegalSystem.DTOs
         public string? Defendant { get; set; }
         //public int? StatusId { get; set; }
         public int? TypeId { get; set; }
-        public int? LevelId { get; set; }
+        //public int? LevelId { get; set; }
         public int? CourtId { get; set; }
         public decimal? ClaimValue { get; set; }
         public string? Summary { get; set; }

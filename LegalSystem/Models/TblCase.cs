@@ -23,13 +23,13 @@ namespace LegalSystem.Models
         [DeleteBehavior(DeleteBehavior.Restrict)]
         public RefCaseType? Type { get; set; }
 
-        [Required]
-        public int? LevelId { get; set; }
+        //[Required]
+        //public int? LevelId { get; set; }
 
-        [ForeignKey(nameof(LevelId))]
-        [InverseProperty(nameof(RefCaseLevel.Cases))]
-        [DeleteBehavior(DeleteBehavior.Restrict)]
-        public RefCaseLevel? Level { get; set; }
+        //[ForeignKey(nameof(LevelId))]
+        //[InverseProperty(nameof(RefCaseLevel.Cases))]
+        //[DeleteBehavior(DeleteBehavior.Restrict)]
+        //public RefCaseLevel? Level { get; set; }
 
         [Required]
         public int CourtId { get; set; }

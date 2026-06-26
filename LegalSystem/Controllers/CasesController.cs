@@ -47,7 +47,7 @@ namespace LegalSystem.Controllers
 
             var rows = unitOfWork.CaseRepository.GetAllQuerable()
                 .Include(e => e.Type)
-                .Include(e => e.Level)
+                //.Include(e => e.Level)
                 .Include(e => e.Court)
                 .Include(e => e.Status)
                 .Include(e => e.ReliefSought)
@@ -66,8 +66,8 @@ namespace LegalSystem.Controllers
             if (filter.TypeId.HasValue)
                 rows = rows.Where(x => x.TypeId == filter.TypeId.Value);
 
-            if (filter.LevelId.HasValue)
-                rows = rows.Where(x => x.LevelId == filter.LevelId.Value);
+            //if (filter.LevelId.HasValue)
+            //    rows = rows.Where(x => x.LevelId == filter.LevelId.Value);
 
             if (filter.CourtId.HasValue)
                 rows = rows.Where(x => x.CourtId == filter.CourtId.Value);
@@ -155,11 +155,11 @@ namespace LegalSystem.Controllers
                         Name = x.Case.Type.NameEN
                     },
 
-                    Level = new SummaryView
-                    {
-                        Id = x.Case.Level!.Id,
-                        Name = x.Case.Level.NameEN
-                    },
+                    //Level = new SummaryView
+                    //{
+                    //    Id = x.Case.Level!.Id,
+                    //    Name = x.Case.Level.NameEN
+                    //},
 
                     Court = new SummaryView
                     {
@@ -269,7 +269,7 @@ namespace LegalSystem.Controllers
             var entity = await unitOfWork.CaseRepository.GetAllQuerable()
                 .Where(x => x.Id == id)
                 .Include(x => x.Type)
-                .Include(x => x.Level)
+                //.Include(x => x.Level)
                 .Include(x => x.Court)
                 .Include(x => x.Status)
                 .Include(x => x.ReliefSought)
@@ -315,11 +315,11 @@ namespace LegalSystem.Controllers
                     Name = entity.Type.NameEN
                 },
 
-                Level = new SummaryView
-                {
-                    Id = entity.Level!.Id,
-                    Name = entity.Level.NameEN
-                },
+                //Level = new SummaryView
+                //{
+                //    Id = entity.Level!.Id,
+                //    Name = entity.Level.NameEN
+                //},
 
                 Court = new SummaryView
                 {
@@ -521,7 +521,7 @@ namespace LegalSystem.Controllers
                 Defendant = model.Defendant,
                 StatusId = model.StatusId,
                 TypeId = model.TypeId,
-                LevelId = model.LevelId,
+                //LevelId = model.LevelId,
                 CourtId = model.CourtId,
                 ClaimValue = model.ClaimValue,
                 Summary = model.Summary,
@@ -716,26 +716,26 @@ namespace LegalSystem.Controllers
                 });
             }
 
-            if (model.LevelId.HasValue &&
-                entity.LevelId != model.LevelId.Value)
-            {
-                AddAuditLog("Level", refs.CaseLevels.FirstOrDefault(r => r.Id == entity.LevelId)?.NameEN, refs.CaseLevels.FirstOrDefault(r => r.Id == model.LevelId.Value)?.NameEN);
-                entity.LevelId = model.LevelId.Value;
-                auditLogs.Add(new TblAuditLog
-                {
-                    UserId = currentUser.Email,
-                    Type = "update",
-                    TableName = "case",
-                    ActionType = "update",
-                    DateTime = DateTime.Now,
-                    OldValues = entity.LevelId.ToString(),
-                    NewValues = model.LevelId.ToString(),
-                    AffectedColumns = null,
-                    PrimaryKey = json,
-                    IsArchived = false,
+            //if (model.LevelId.HasValue &&
+            //    entity.LevelId != model.LevelId.Value)
+            //{
+            //    AddAuditLog("Level", refs.CaseLevels.FirstOrDefault(r => r.Id == entity.LevelId)?.NameEN, refs.CaseLevels.FirstOrDefault(r => r.Id == model.LevelId.Value)?.NameEN);
+            //    entity.LevelId = model.LevelId.Value;
+            //    auditLogs.Add(new TblAuditLog
+            //    {
+            //        UserId = currentUser.Email,
+            //        Type = "update",
+            //        TableName = "case",
+            //        ActionType = "update",
+            //        DateTime = DateTime.Now,
+            //        OldValues = entity.LevelId.ToString(),
+            //        NewValues = model.LevelId.ToString(),
+            //        AffectedColumns = null,
+            //        PrimaryKey = json,
+            //        IsArchived = false,
 
-                });
-            }
+            //    });
+            //}
 
             if (model.CourtId.HasValue &&
                 entity.CourtId != model.CourtId.Value)
@@ -1428,7 +1428,7 @@ namespace LegalSystem.Controllers
 
             var rows = unitOfWork.CaseRepository.GetAllQuerable()
                 .Include(e => e.Type)
-                .Include(e => e.Level)
+                //.Include(e => e.Level)
                 .Include(e => e.Court)
                 .Include(e => e.Status)
                 .Include(e => e.ReliefSought)
@@ -1446,8 +1446,8 @@ namespace LegalSystem.Controllers
             if (filter.TypeId.HasValue)
                 rows = rows.Where(x => x.TypeId == filter.TypeId.Value);
 
-            if (filter.LevelId.HasValue)
-                rows = rows.Where(x => x.LevelId == filter.LevelId.Value);
+            //if (filter.LevelId.HasValue)
+            //    rows = rows.Where(x => x.LevelId == filter.LevelId.Value);
 
             if (filter.CourtId.HasValue)
                 rows = rows.Where(x => x.CourtId == filter.CourtId.Value);
@@ -1508,16 +1508,16 @@ namespace LegalSystem.Controllers
                     worksheet.Cell(row, 3).Value = c.Claimant;
                     worksheet.Cell(row, 4).Value = c.Defendant;
                     worksheet.Cell(row, 5).Value = c.Type?.NameEN;
-                    worksheet.Cell(row, 6).Value = c.Level?.NameEN;
-                    worksheet.Cell(row, 7).Value = c.Court?.NameEN;
-                    worksheet.Cell(row, 8).Value = c.Status?.NameEN;
+                    //worksheet.Cell(row, 6).Value = c.Level?.NameEN;
+                    worksheet.Cell(row, 6).Value = c.Court?.NameEN;
+                    worksheet.Cell(row, 7).Value = c.Status?.NameEN;
                     //worksheet.Cell(row, 9).Value = nextStep?.CaseStatus?.NameEN;
-                    worksheet.Cell(row, 10).Value = c.ReliefSought?.NameEN;
-                    worksheet.Cell(row, 11).Value = c.ClaimValue;
-                    worksheet.Cell(row, 12).Value = c.ProjectName;
-                    worksheet.Cell(row, 13).Value = c.UnitCode;
-                    worksheet.Cell(row, 14).Value = c.CreatedByName;
-                    worksheet.Cell(row, 15).Value = c.CreatedOn;
+                    worksheet.Cell(row, 8).Value = c.ReliefSought?.NameEN;
+                    worksheet.Cell(row, 9).Value = c.ClaimValue;
+                    worksheet.Cell(row, 10).Value = c.ProjectName;
+                    worksheet.Cell(row, 11).Value = c.UnitCode;
+                    worksheet.Cell(row, 12).Value = c.CreatedByName;
+                    worksheet.Cell(row, 13).Value = c.CreatedOn;
 
                     row++;
                 }
@@ -1551,7 +1551,7 @@ namespace LegalSystem.Controllers
 
             var rows = unitOfWork.CaseRepository.GetAllQuerable()
                 .Include(e => e.Type)
-                .Include(e => e.Level)
+                //.Include(e => e.Level)
                 .Include(e => e.Court)
                 .Include(e => e.Status)
                 .Include(e => e.ReliefSought)
@@ -1638,11 +1638,11 @@ namespace LegalSystem.Controllers
                         Name = x.Case.Type.NameEN
                     },
 
-                    Level = new SummaryView
-                    {
-                        Id = x.Case.Level!.Id,
-                        Name = x.Case.Level.NameEN
-                    },
+                    //Level = new SummaryView
+                    //{
+                    //    Id = x.Case.Level!.Id,
+                    //    Name = x.Case.Level.NameEN
+                    //},
 
                     Court = new SummaryView
                     {
@@ -1745,7 +1745,7 @@ namespace LegalSystem.Controllers
 
             var rows = unitOfWork.CaseRepository.GetAllQuerable()
                 .Include(e => e.Type)
-                .Include(e => e.Level)
+                //.Include(e => e.Level)
                 .Include(e => e.Court)
                 .Include(e => e.Status)
                 .Include(e => e.ReliefSought)
