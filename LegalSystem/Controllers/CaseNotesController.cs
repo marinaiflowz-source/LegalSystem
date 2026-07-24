@@ -42,7 +42,7 @@ namespace LegalSystem.Controllers
             var rows = unitOfWork.CaseNoteRepository.GetAllQuerable()
                 .Include(e => e.Case).ThenInclude(c => c!.Team)
                 .Where(x => x.CaseId == caseId)
-                .Where(e => currentUser.IsSuperAdmin || e.Case!.Team.Select(t => t.UserId).Contains(currentUser.UserId))
+                //.Where(e => currentUser.IsSuperAdmin || e.Case!.Team.Select(t => t.UserId).Contains(currentUser.UserId))
                 .AsNoTracking();
 
             var data = await rows.Select(x => new CaseNoteQuery

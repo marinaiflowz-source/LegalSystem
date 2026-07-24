@@ -35,6 +35,9 @@ namespace LegalSystem.DTOs
         public string? SoldPrice { get; set; }
         public bool IsClaimant { get; set; }
         public long? MainCaseId { get; set; }
+
+        public long?  AssignedUserId { get; set; }
+        public string? Note { get; set; }
     }
     public class UpdateCaseCommand
     {
@@ -54,12 +57,16 @@ namespace LegalSystem.DTOs
         public string CaseName { get; set; }
         public bool IsClaimant { get; set; }
         public long? MainCaseId { get; set; }
+        public long? AssignedUserId { get; set; }
+        public string? Note { get; set; }
+
     }
     public class CloseCaseCommand
     {
         public int ClosedStatus { get; set; }
         public bool IsCompleted { get; set; }
         public DateOnly ClosedDate { get; set; }
+        public string? CloseReason { get; set; }
     }
     public class CaseQuery
     {
@@ -103,6 +110,11 @@ namespace LegalSystem.DTOs
         public CASEENUM? ClosedStatus { get; set; }
         public  bool IsClaimant { get; set; }
         public SummaryView? MainCase { get; set; }
+        public SummaryUserView? AssignedUser { get; set; }
+        public int TotalActiveTasks { get; set; }
+        public string? Note { get; set; }
+        public string? CloseReason { get; set; }
+        
     }
     public class CaseDetailsQuery : CaseQuery
     {
@@ -126,19 +138,53 @@ namespace LegalSystem.DTOs
     }
     public class CaseFilter: IQueryObject
     {
-        public string? SortBy { get; set; }
-        public bool IsAscending { get; set; }
-        public int Index { get; set; }
-        public int Size { get; set; }
-
+        // General search
         public string? SearchText { get; set; }
+
+        // Lookup filters
         public int? TypeId { get; set; }
-        public int? LevelId { get; set; }
         public int? CourtId { get; set; }
         public int? StatusId { get; set; }
+        public int? AssignedUserId { get; set; }
         public int? ReliefSoughtId { get; set; }
-        public string? LeadID { get; set; }
         public long? MainCaseId { get; set; }
+
+        // Text filters
+       
+        public bool? IsCompleted { get; set; }
+        public bool? IsClaimant { get; set; }
+
+        // Date filters
+        public DateTime? CreatedFrom { get; set; }
+        public DateTime? CreatedTo { get; set; }
+
+        public DateTime? ClosedFrom { get; set; }
+        public DateTime? ClosedTo { get; set; }
+
+        // Paging and sorting
+        public int Index { get; set; } = 0;
+        public int Size { get; set; } = 10;
+
+        public string? SortBy { get; set; }
+        public bool IsAscending { get; set; }
+
+
+
+
+        //public string? SortBy { get; set; }
+        //public bool IsAscending { get; set; }
+        //public int Index { get; set; }
+        //public int Size { get; set; }
+
+        //public string? SearchText { get; set; }
+        //public int? TypeId { get; set; }
+        //public int? LevelId { get; set; }
+        //public int? CourtId { get; set; }
+        //public int? StatusId { get; set; }
+        //public int? ReliefSoughtId { get; set; }
+        //public string? LeadID { get; set; }
+        //public long? MainCaseId { get; set; }
+        //public long? AssignedUserId { get; set; }
     }
 
 
@@ -159,4 +205,9 @@ namespace LegalSystem.DTOs
         public string CaseName { get; set; } = string.Empty;
     }
 
+
+    public class TransferUserRequest
+    {
+        public int AssignUserId { get; set; }
     }
+}

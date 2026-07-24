@@ -45,6 +45,7 @@ namespace LegalSystem.Models
         [InverseProperty(nameof(RefTaskStatus.Tasks))]
         [DeleteBehavior(DeleteBehavior.Restrict)]
         public RefTaskStatus? Status { get; set; }
+        public string? Note { get; set; }
 
         [ForeignKey(nameof(ReasonId))]
         [DeleteBehavior(DeleteBehavior.Restrict)]

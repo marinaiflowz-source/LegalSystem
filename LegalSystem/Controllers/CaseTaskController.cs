@@ -50,7 +50,7 @@ namespace LegalSystem.Controllers
                 .Include(e => e.Priority)
                 .Include(e => e.Status)
                 .Include(e => e.RefTaskType)
-                .Where(e => currentUser.IsSuperAdmin || e.Case!.Team.Select(t => t.UserId).Contains(currentUser.UserId))
+                //.Where(e => currentUser.IsSuperAdmin)
                 .AsNoTracking();
 
             // Filtering
@@ -147,6 +147,7 @@ namespace LegalSystem.Controllers
                      Id = x.RefTaskType.Id,
                      Name = x.RefTaskType.NameEN,
                  },
+                 Note = x.Note
              }
             ).ToList();
 
@@ -199,7 +200,7 @@ namespace LegalSystem.Controllers
                 .Include(e=>e.Reason)
                 .Include(e => e.RefTaskType)
                 .Where(e => e.CaseId == caseId)
-                .Where(e => currentUser.IsSuperAdmin || e.Case!.Team.Select(t => t.UserId).Contains(currentUser.UserId))
+                //.Where(e => currentUser.IsSuperAdmin || e.Case!.Team.Select(t => t.UserId).Contains(currentUser.UserId))
                 .AsNoTracking();
 
 
@@ -255,6 +256,7 @@ namespace LegalSystem.Controllers
                     Id = x.RefTaskType.Id,
                     Name = x.RefTaskType.NameEN,
                 },
+                Note=x.Note
 
             }).ToListAsync();
 
@@ -292,6 +294,7 @@ namespace LegalSystem.Controllers
         }
 
         // ========================= CREATE =========================
+
         [HttpPost("create")]
         [RequiredPermission("caseTasks.create")]
         [ProducesResponseType(typeof(Response<long>), StatusCodes.Status200OK)]
@@ -307,16 +310,27 @@ namespace LegalSystem.Controllers
                 Title = "Created"
             };
 
-          
+            var caseTeamIds = unitOfWork.CaseTeamRepository
+                .GetAllQuerable()
+                .Where(e => e.CaseId == model.CaseId)
+                .Select(e => e.UserId);
 
-
-            var caseTeamIds = unitOfWork.CaseTeamRepository.GetAllQuerable().Where(e => e.CaseId == model.CaseId).Select(e => e.UserId);
-            if (!currentUser.IsSuperAdmin && !caseTeamIds.Contains(currentUser.UserId))
+            if (!currentUser.IsSuperAdmin &&
+                !await caseTeamIds.ContainsAsync(currentUser.UserId))
             {
                 result.Status = (int)ResponseEnum.Unauthorized;
                 result.Title = "Not authorized";
+
                 return StatusCode(result.Status, result);
             }
+
+            // Replace these values with your actual status IDs
+            const int pendingStatusId = 1;
+            const int compeletedStatusId = 2;
+
+            var statusId = model.DueDate.Date > DateTime.Today
+                ? pendingStatusId
+                : compeletedStatusId;
 
             var entity = new TblCaseTask
             {
@@ -324,58 +338,144 @@ namespace LegalSystem.Controllers
                 Title = model.Title,
                 DueDate = model.DueDate,
                 PriorityId = model.PriorityId,
-                StatusId = model.StatusId,
+                StatusId = statusId,
                 AssignedUserId = model.AssignedUserId,
                 CreatedOn = DateTime.Now,
                 CreatedById = currentUser.UserId,
                 CreatedByName = currentUser.UserName,
-                IsClosed=false,
-                TaskTypeId=model.TaskTypeId
+                IsClosed = false,
+                TaskTypeId = model.TaskTypeId,
+                Note=model.Note
             };
 
             await unitOfWork.CaseTaskRepository.AddAsync(entity);
 
-            await unitOfWork.CaseAuditLogRepository.AddAsync(new TblCaseAuditLog
-            {
-                CaseId = model.CaseId,
-                Comment = $"Case task created. Title: {model.Title}, PriorityId: {model.PriorityId}, StatusId: {model.StatusId}",
-                CreatedOn = DateTime.Now,
-                CreatedById = currentUser.UserId,
-                CreatedByName = currentUser.UserName,
-            });
+            await unitOfWork.CaseAuditLogRepository.AddAsync(
+                new TblCaseAuditLog
+                {
+                    CaseId = model.CaseId,
+                    Comment =
+                        $"Case task created. Title: {model.Title}, " +
+                        $"PriorityId: {model.PriorityId}, StatusId: {statusId}",
+                    CreatedOn = DateTime.Now,
+                    CreatedById = currentUser.UserId,
+                    CreatedByName = currentUser.UserName
+                });
 
             await unitOfWork.CompleteAsync();
 
             result.Data = entity.Id;
 
-            var obj = new
+            var primaryKey = JsonSerializer.Serialize(new
             {
                 Id = entity.Id
-            };
+            });
 
-            string json = JsonSerializer.Serialize(obj);
             var entityDocument = new TblAuditLog
             {
                 UserId = currentUser.Email,
-                Type = "Create"+ model.Title,
+                Type = "Create " + model.Title,
                 TableName = "Case Tasks",
                 ActionType = "Create",
                 DateTime = DateTime.Now,
                 OldValues = null,
                 NewValues = null,
                 AffectedColumns = null,
-                PrimaryKey = json,
-                IsArchived = false,
-
+                PrimaryKey = primaryKey,
+                IsArchived = false
             };
 
             await unitOfWork.AuditLogRepository.AddAsync(entityDocument);
-
             await unitOfWork.CompleteAsync();
-
 
             return StatusCode(result.Status, result);
         }
+
+
+        //[HttpPost("create")]
+        //[RequiredPermission("caseTasks.create")]
+        //[ProducesResponseType(typeof(Response<long>), StatusCodes.Status200OK)]
+        //[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        //public async Task<IActionResult> CreateAsync([FromBody] CaseTaskCommand model)
+        //{
+        //    var currentUser = await httpContext.GetCurrentUser();
+
+        //    var result = new Response<long?>()
+        //    {
+        //        Data = null,
+        //        Status = (int)ResponseEnum.Created,
+        //        Title = "Created"
+        //    };
+
+
+
+
+        //    var caseTeamIds = unitOfWork.CaseTeamRepository.GetAllQuerable().Where(e => e.CaseId == model.CaseId).Select(e => e.UserId);
+        //    if (!currentUser.IsSuperAdmin && !caseTeamIds.Contains(currentUser.UserId))
+        //    {
+        //        result.Status = (int)ResponseEnum.Unauthorized;
+        //        result.Title = "Not authorized";
+        //        return StatusCode(result.Status, result);
+        //    }
+
+        //    var entity = new TblCaseTask
+        //    {
+        //        CaseId = model.CaseId,
+        //        Title = model.Title,
+        //        DueDate = model.DueDate,
+        //        PriorityId = model.PriorityId,
+        //        StatusId = model.StatusId,
+        //        AssignedUserId = model.AssignedUserId,
+        //        CreatedOn = DateTime.Now,
+        //        CreatedById = currentUser.UserId,
+        //        CreatedByName = currentUser.UserName,
+        //        IsClosed=false,
+        //        TaskTypeId=model.TaskTypeId
+        //    };
+
+        //    await unitOfWork.CaseTaskRepository.AddAsync(entity);
+
+        //    await unitOfWork.CaseAuditLogRepository.AddAsync(new TblCaseAuditLog
+        //    {
+        //        CaseId = model.CaseId,
+        //        Comment = $"Case task created. Title: {model.Title}, PriorityId: {model.PriorityId}, StatusId: {model.StatusId}",
+        //        CreatedOn = DateTime.Now,
+        //        CreatedById = currentUser.UserId,
+        //        CreatedByName = currentUser.UserName,
+        //    });
+
+        //    await unitOfWork.CompleteAsync();
+
+        //    result.Data = entity.Id;
+
+        //    var obj = new
+        //    {
+        //        Id = entity.Id
+        //    };
+
+        //    string json = JsonSerializer.Serialize(obj);
+        //    var entityDocument = new TblAuditLog
+        //    {
+        //        UserId = currentUser.Email,
+        //        Type = "Create"+ model.Title,
+        //        TableName = "Case Tasks",
+        //        ActionType = "Create",
+        //        DateTime = DateTime.Now,
+        //        OldValues = null,
+        //        NewValues = null,
+        //        AffectedColumns = null,
+        //        PrimaryKey = json,
+        //        IsArchived = false,
+
+        //    };
+
+        //    await unitOfWork.AuditLogRepository.AddAsync(entityDocument);
+
+        //    await unitOfWork.CompleteAsync();
+
+
+        //    return StatusCode(result.Status, result);
+        //}
 
         // ========================= UPDATE =========================
         [HttpPost("{id}/update")]
@@ -455,6 +555,28 @@ namespace LegalSystem.Controllers
                     DateTime = DateTime.Now,
                     OldValues = entity.Title,
                     NewValues = model.Title,
+                    AffectedColumns = null,
+                    PrimaryKey = json,
+                    IsArchived = false,
+
+                });
+
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Note) &&
+               entity.Note != model.Note)
+            {
+                AddAuditLog("Note", entity.Title, model.Title);
+                entity.Note = model.Note;
+                auditLogs.Add(new TblAuditLog
+                {
+                    UserId = currentUser.Email,
+                    Type = "update Note",
+                    TableName = "Case Tasks",
+                    ActionType = "update",
+                    DateTime = DateTime.Now,
+                    OldValues = entity.Note,
+                    NewValues = model.Note,
                     AffectedColumns = null,
                     PrimaryKey = json,
                     IsArchived = false,
@@ -750,135 +872,425 @@ namespace LegalSystem.Controllers
 
 
 
+        //[HttpGet("{caseId}/ExportCaseTask")]
+        //[RequiredPermission("caseTasks.getByCase")]
+        //[ProducesResponseType(typeof(Response<IEnumerable<CaseTaskQuery>>), StatusCodes.Status200OK)]
+        //[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        //public async Task<IActionResult> ExportCaseAsync(long caseId)
+        //{
+        //    var currentUser = await httpContext.GetCurrentUser();
+        //    var result = new Response<IEnumerable<CaseTaskQuery>?>()
+        //    {
+        //        Data = null,
+        //        Status = (int)ResponseEnum.NotFound,
+        //        Title = "Not Found"
+        //    };
+
+        //    var rows = unitOfWork.CaseTaskRepository.GetAllQuerable()
+        //        .Include(e => e.AssignedUser).ThenInclude(e => e!.Type)
+        //        .Include(e => e.Case).ThenInclude(e => e!.Court)
+        //        .Include(e => e.Case).ThenInclude(e => e!.Team)
+        //        .Include(e => e.Priority)
+        //        .Include(e => e.Status)
+        //        .Include(e => e.Reason)
+        //        .Include(e => e.RefTaskType)
+        //        .Where(e => e.CaseId == caseId)
+        //        .Where(e => currentUser.IsSuperAdmin || e.Case!.Team.Select(t => t.UserId).Contains(currentUser.UserId))
+        //        .AsNoTracking();
+
+
+
+        //    // Projection
+        //    var data = await rows.Select(x => new CaseTaskQuery
+        //    {
+        //        Id = x.Id,
+        //        CaseId = x.CaseId,
+        //        Title = x.Title,
+        //        DueDate = x.DueDate,
+
+        //        Priority = x.Priority == null ? null : new SummaryView
+        //        {
+        //            Id = x.Priority.Id,
+        //            Name = x.Priority.NameEN,
+        //        },
+
+        //        Status = x.Status == null ? null : new SummaryView
+        //        {
+        //            Id = x.Status.Id,
+        //            Name = x.Status.NameEN,
+        //        },
+        //        Court = x.Case!.Court == null ? null : new SummaryView
+        //        {
+        //            Id = x.Case.Court.Id,
+        //            Name = x.Case.Court.NameEN,
+        //        },
+
+        //        User = x.AssignedUser == null ? null : new UserSummaryView
+        //        {
+        //            Id = x.AssignedUser.Id,
+        //            NameEn = x.AssignedUser.NameEn,
+        //            NameAr = x.AssignedUser.NameAr,
+        //            Email = x.AssignedUser.Email,
+        //            Type = x.AssignedUser.Type!.NameEN
+        //        },
+        //        IsClosed = x.IsClosed,
+        //        CreatedOn = x.CreatedOn,
+        //        CreatedById = x.CreatedById,
+        //        CreatedByName = x.CreatedByName,
+
+        //        UpdatedOn = x.UpdatedOn,
+        //        UpdatedById = x.UpdatedById,
+        //        UpdatedByName = x.UpdatedByName,
+        //        Reason = x.Reason == null ? null : new ReasonView
+        //        {
+        //            Id = x.Reason.Id,
+        //            Name = x.Reason.NameEN,
+        //        },
+        //        TaskType = x.RefTaskType == null ? null : new RefTaskTypeView
+        //        {
+        //            Id = x.RefTaskType.Id,
+        //            Name = x.RefTaskType.NameEN,
+        //        },
+
+        //    }).ToListAsync();
+
+
+
+        //    var templatePath = Path.Combine(
+        //                 Directory.GetCurrentDirectory(),
+        //                        "Templates",
+        //                     "CaseTask.xlsx");
+
+        //    string outputPath = Path.Combine(
+        //        Path.GetTempPath(),
+        //        $"CasesTask_{Guid.NewGuid()}.xlsx");
+
+        //    System.IO.File.Copy(templatePath, outputPath, true);
+
+        //    using (var workbook = new XLWorkbook(outputPath))
+        //    {
+        //        var worksheet = workbook.Worksheet(1);
+
+        //        worksheet.Cell(2, 6).Value = DateTime.Now;
+        //        worksheet.Cell(2, 6).Style.DateFormat.Format = "dd-MM-yyyy HH:mm";
+
+        //        int row = 5;
+
+        //        foreach (var c in data)
+        //        {
+        //            worksheet.Cell(row, 1).Value = c.Id;
+        //            worksheet.Cell(row, 2).Value = c.Title;
+        //            worksheet.Cell(row, 3).Value = c.DueDate;
+        //            worksheet.Cell(row, 4).Value = c.Priority?.Name;
+        //            worksheet.Cell(row, 5).Value = c.Status?.Name;
+        //            worksheet.Cell(row, 6).Value = c.CreatedOn;
+        //            row++;
+        //        }
+
+        //        worksheet.Columns().AdjustToContents();
+
+        //        workbook.Save();
+        //    }
+
+        //    var fileBytes = await System.IO.File.ReadAllBytesAsync(outputPath);
+
+
+        //    return PhysicalFile(outputPath, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        //                        $"CaseTask_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
+
+
+        //}
+
         [HttpGet("{caseId}/ExportCaseTask")]
         [RequiredPermission("caseTasks.getByCase")]
-        [ProducesResponseType(typeof(Response<IEnumerable<CaseTaskQuery>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ExportCaseAsync(long caseId)
         {
             var currentUser = await httpContext.GetCurrentUser();
-            var result = new Response<IEnumerable<CaseTaskQuery>?>()
+
+            var rows = unitOfWork.CaseTaskRepository
+                .GetAllQuerable()
+                .AsNoTracking()
+                .Include(x=>x.Case)
+                .ThenInclude(x=>x.AssignedUser)
+                .Where(x => x.CaseId == caseId);
+
+         
+
+            var data = await rows
+                .OrderByDescending(x => x.CreatedOn)
+                .Select(x => new
+                {
+                    TaskId = x.Id,
+                    x.CaseId,
+                    Title = x.Title ?? string.Empty,
+                    x.DueDate,
+
+                    PriorityName = x.Priority != null
+                        ? x.Priority.NameEN
+                        : string.Empty,
+
+                    StatusName = x.Status != null
+                        ? x.Status.NameEN
+                        : string.Empty,
+
+                    CourtName =
+                        x.Case != null && x.Case.Court != null
+                            ? x.Case.Court.NameEN
+                            : string.Empty,
+
+                    AssignedUserNameEn = x.Case != null &&
+                     x.Case.AssignedUser != null
+    ? x.Case.AssignedUser.NameEn
+    : string.Empty,
+
+                    AssignedUserNameAr =
+                        x.Case != null &&
+                     x.Case.AssignedUser != null
+    ? x.Case.AssignedUser.NameAr
+    : string.Empty,
+
+                    AssignedUserEmail =
+                         x.Case != null &&
+                     x.Case.AssignedUser != null
+    ? x.Case.AssignedUser.Email
+    : string.Empty,
+                  
+                })
+                .ToListAsync();
+
+            if (data.Count == 0)
             {
-                Data = null,
-                Status = (int)ResponseEnum.NotFound,
-                Title = "Not Found"
-            };
-
-            var rows = unitOfWork.CaseTaskRepository.GetAllQuerable()
-                .Include(e => e.AssignedUser).ThenInclude(e => e!.Type)
-                .Include(e => e.Case).ThenInclude(e => e!.Court)
-                .Include(e => e.Case).ThenInclude(e => e!.Team)
-                .Include(e => e.Priority)
-                .Include(e => e.Status)
-                .Include(e => e.Reason)
-                .Include(e => e.RefTaskType)
-                .Where(e => e.CaseId == caseId)
-                .Where(e => currentUser.IsSuperAdmin || e.Case!.Team.Select(t => t.UserId).Contains(currentUser.UserId))
-                .AsNoTracking();
-
-
-
-            // Projection
-            var data = await rows.Select(x => new CaseTaskQuery
-            {
-                Id = x.Id,
-                CaseId = x.CaseId,
-                Title = x.Title,
-                DueDate = x.DueDate,
-
-                Priority = x.Priority == null ? null : new SummaryView
+                return NotFound(new ProblemDetails
                 {
-                    Id = x.Priority.Id,
-                    Name = x.Priority.NameEN,
-                },
-
-                Status = x.Status == null ? null : new SummaryView
-                {
-                    Id = x.Status.Id,
-                    Name = x.Status.NameEN,
-                },
-                Court = x.Case!.Court == null ? null : new SummaryView
-                {
-                    Id = x.Case.Court.Id,
-                    Name = x.Case.Court.NameEN,
-                },
-
-                User = x.AssignedUser == null ? null : new UserSummaryView
-                {
-                    Id = x.AssignedUser.Id,
-                    NameEn = x.AssignedUser.NameEn,
-                    NameAr = x.AssignedUser.NameAr,
-                    Email = x.AssignedUser.Email,
-                    Type = x.AssignedUser.Type!.NameEN
-                },
-                IsClosed = x.IsClosed,
-                CreatedOn = x.CreatedOn,
-                CreatedById = x.CreatedById,
-                CreatedByName = x.CreatedByName,
-
-                UpdatedOn = x.UpdatedOn,
-                UpdatedById = x.UpdatedById,
-                UpdatedByName = x.UpdatedByName,
-                Reason = x.Reason == null ? null : new ReasonView
-                {
-                    Id = x.Reason.Id,
-                    Name = x.Reason.NameEN,
-                },
-                TaskType = x.RefTaskType == null ? null : new RefTaskTypeView
-                {
-                    Id = x.RefTaskType.Id,
-                    Name = x.RefTaskType.NameEN,
-                },
-
-            }).ToListAsync();
-
-
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Not Found",
+                    Detail = "No case tasks were found for this case."
+                });
+            }
 
             var templatePath = Path.Combine(
-                         Directory.GetCurrentDirectory(),
-                                "Templates",
-                             "CaseTask.xlsx");
+                Directory.GetCurrentDirectory(),
+                "Templates",
+                "CaseTask.xlsx");
 
-            string outputPath = Path.Combine(
-                Path.GetTempPath(),
-                $"CasesTask_{Guid.NewGuid()}.xlsx");
-
-            System.IO.File.Copy(templatePath, outputPath, true);
-
-            using (var workbook = new XLWorkbook(outputPath))
+            if (!System.IO.File.Exists(templatePath))
             {
+                return Problem(
+                    statusCode: StatusCodes.Status500InternalServerError,
+                    title: "Template not found",
+                    detail: "The CaseTask.xlsx template file could not be found.");
+            }
+
+            var outputPath = Path.Combine(
+                Path.GetTempPath(),
+                $"CaseTask_{caseId}_{Guid.NewGuid():N}.xlsx");
+
+            System.IO.File.Copy(
+                templatePath,
+                outputPath,
+                overwrite: true);
+
+            try
+            {
+                using var workbook = new XLWorkbook(outputPath);
+
                 var worksheet = workbook.Worksheet(1);
 
+                const int headerRow = 4;
+                const int firstDataRow = 5;
+                const int totalColumns = 10;
+
+                // Report generated date
                 worksheet.Cell(2, 6).Value = DateTime.Now;
-                worksheet.Cell(2, 6).Style.DateFormat.Format = "dd-MM-yyyy HH:mm";
+                worksheet.Cell(2, 6).Style.DateFormat.Format =
+                    "dd-MM-yyyy HH:mm";
 
-                int row = 5;
+                // Clear any previous template data
+                var oldLastRow = worksheet.LastRowUsed()?.RowNumber() ?? firstDataRow;
 
-                foreach (var c in data)
+                if (oldLastRow >= firstDataRow)
                 {
-                    worksheet.Cell(row, 1).Value = c.Id;
-                    worksheet.Cell(row, 2).Value = c.Title;
-                    worksheet.Cell(row, 3).Value = c.DueDate;
-                    worksheet.Cell(row, 4).Value = c.Priority?.Name;
-                    worksheet.Cell(row, 5).Value = c.Status?.Name;
-                    worksheet.Cell(row, 6).Value = c.CreatedOn;
+                    worksheet.Range(
+                            firstDataRow,
+                            1,
+                            oldLastRow,
+                            totalColumns)
+                        .Clear(XLClearOptions.Contents);
+                }
+
+                // Headers
+                var headers = new[]
+                {
+            "Task ID",
+            "Case ID",
+            "Title",
+            "Due Date",
+            "Priority",
+            "Status",
+            "Court",
+            "Assigned User English",
+            "Assigned User Arabic",
+            "User Email"
+           
+        };
+
+                for (var column = 1; column <= headers.Length; column++)
+                {
+                    worksheet.Cell(headerRow, column).Value =
+                        headers[column - 1];
+                }
+
+                var headerRange = worksheet.Range(
+                    headerRow,
+                    1,
+                    headerRow,
+                    totalColumns);
+
+                headerRange.Style.Font.Bold = true;
+                headerRange.Style.Alignment.Horizontal =
+                    XLAlignmentHorizontalValues.Center;
+                headerRange.Style.Alignment.Vertical =
+                    XLAlignmentVerticalValues.Center;
+                headerRange.Style.Alignment.WrapText = true;
+
+                headerRange.Style.Border.OutsideBorder =
+                    XLBorderStyleValues.Thin;
+                headerRange.Style.Border.InsideBorder =
+                    XLBorderStyleValues.Thin;
+
+                var row = firstDataRow;
+
+                foreach (var task in data)
+                {
+                    worksheet.Cell(row, 1).Value = task.TaskId;
+                    worksheet.Cell(row, 2).Value = task.CaseId;
+                    worksheet.Cell(row, 3).Value = task.Title;
+
+                    if (task.DueDate != DateTime.MinValue)
+                    {
+                        worksheet.Cell(row, 4).Value = task.DueDate;
+                        worksheet.Cell(row, 4)
+                            .Style.DateFormat.Format =
+                            "dd-MM-yyyy HH:mm";
+                    }
+                    else
+                    {
+                        worksheet.Cell(row, 4).Value = string.Empty;
+                    }
+
+                    worksheet.Cell(row, 5).Value =
+                        task.PriorityName;
+
+                    worksheet.Cell(row, 6).Value =
+                        task.StatusName;
+
+                    worksheet.Cell(row, 7).Value =
+                        task.CourtName;
+
+                    worksheet.Cell(row, 8).Value =
+                        task.AssignedUserNameEn;
+
+                    worksheet.Cell(row, 9).Value =
+                        task.AssignedUserNameAr;
+
+                    worksheet.Cell(row, 10).Value =
+                        task.AssignedUserEmail;
+
+                   
+
                     row++;
                 }
 
-                worksheet.Columns().AdjustToContents();
+                var lastDataRow = row - 1;
 
-                workbook.Save();
+                var tableRange = worksheet.Range(
+                    headerRow,
+                    1,
+                    lastDataRow,
+                    totalColumns);
+
+                tableRange.Style.Border.OutsideBorder =
+                    XLBorderStyleValues.Thin;
+
+                tableRange.Style.Border.InsideBorder =
+                    XLBorderStyleValues.Thin;
+
+                tableRange.Style.Alignment.Vertical =
+                    XLAlignmentVerticalValues.Center;
+
+                worksheet.Range(
+                        firstDataRow,
+                        1,
+                        lastDataRow,
+                        totalColumns)
+                    .Style.Alignment.WrapText = true;
+
+                // Explicit date-column formatting
+                worksheet.Range(
+                        firstDataRow,
+                        4,
+                        lastDataRow,
+                        4)
+                    .Style.DateFormat.Format =
+                    "dd-MM-yyyy HH:mm";
+
+                // Better alignment
+                worksheet.Range(
+                        firstDataRow,
+                        1,
+                        lastDataRow,
+                        2)
+                    .Style.Alignment.Horizontal =
+                    XLAlignmentHorizontalValues.Center;
+
+                worksheet.Range(
+                        firstDataRow,
+                        4,
+                        lastDataRow,
+                        7)
+                    .Style.Alignment.Horizontal =
+                    XLAlignmentHorizontalValues.Center;
+
+                worksheet.SheetView.FreezeRows(headerRow);
+
+                worksheet.Columns(1, totalColumns)
+                    .AdjustToContents();
+
+                // Control column widths
+                worksheet.Column(1).Width = 12;
+                worksheet.Column(2).Width = 12;
+                worksheet.Column(3).Width = 35;
+                worksheet.Column(4).Width = 20;
+                worksheet.Column(5).Width = 18;
+                worksheet.Column(6).Width = 18;
+                worksheet.Column(7).Width = 25;
+                worksheet.Column(8).Width = 25;
+                worksheet.Column(9).Width = 25;
+                worksheet.Column(10).Width = 30;
+                worksheet.Column(11).Width = 20;
+
+                worksheet.Row(headerRow).Height = 30;
+
+                workbook.SaveAs(outputPath);
+
+                var fileBytes =
+                    await System.IO.File.ReadAllBytesAsync(outputPath);
+
+                return File(
+                    fileBytes,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"CaseTask_{caseId}_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
             }
-
-            var fileBytes = await System.IO.File.ReadAllBytesAsync(outputPath);
-
-           
-            return PhysicalFile(outputPath, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                $"CaseTask_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
-           
-           
+            finally
+            {
+                if (System.IO.File.Exists(outputPath))
+                {
+                    System.IO.File.Delete(outputPath);
+                }
+            }
         }
-
-
     }
 }

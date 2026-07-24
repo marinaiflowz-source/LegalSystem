@@ -370,6 +370,47 @@ namespace LegalSystem.Controllers
 
             return StatusCode(result.Status, result);
         }
+
+
+        [HttpGet("GetList")]
+        [RequiredPermission("cases.get")]
+        public async Task<IActionResult> GetListAsync()
+        {
+            var currentUser = await httpContext.GetCurrentUser();
+
+            var result = new QueryResult<UserQuery>()
+            {
+                Status = (int)ResponseEnum.Succeeded,
+                Title = "Data Retrieved"
+            };
+
+            var rows = unitOfWork.UserRepository.GetAllQuerable()
+                //.Where(e => currentUser.IsSuperAdmin || e.Team.Select(t => t.UserId).Contains(currentUser.UserId))
+                .AsNoTracking();
+
+
+
+
+            // Projection
+            var data = await rows.Select(x => new
+            {
+                user = x,
+            }).ToListAsync();
+
+            result.Data.Rows = data.Select(x =>
+            {
+
+                return new UserQuery
+                {
+                    Id = x.user.Id,
+                    NameEn = x.user.NameEn,
+                };
+            }).ToList();
+
+
+            return StatusCode(result.Status, result);
+        }
+
     }
 }
 

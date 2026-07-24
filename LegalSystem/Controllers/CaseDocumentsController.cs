@@ -60,7 +60,7 @@ namespace LegalSystem.Controllers
             var rows = unitOfWork.CaseDocumentRepository.GetAllQuerable()
                 //.Include(e => e.Classification)
                 .Include(e => e.Case).ThenInclude(c => c!.Team)
-                .Where(e => currentUser.IsSuperAdmin || e.Case!.Team.Select(t => t.UserId).Contains(currentUser.UserId))
+                //.Where(e => currentUser.IsSuperAdmin || e.Case!.Team.Select(t => t.UserId).Contains(currentUser.UserId))
                 .AsNoTracking();
 
             // Filtering
@@ -176,7 +176,7 @@ namespace LegalSystem.Controllers
                 //.Include(e => e.Classification)
                 .Include(e => e.Case).ThenInclude(c => c!.Team)
                 .Where(e => e.CaseId == caseId)
-                .Where(e => currentUser.IsSuperAdmin || e.Case!.Team.Select(t => t.UserId).Contains(currentUser.UserId))
+                //.Where(e => currentUser.IsSuperAdmin || e.Case!.Team.Select(t => t.UserId).Contains(currentUser.UserId))
                 .AsNoTracking();
 
             var data = await rows.Select(x => new CaseDocumentQuery
@@ -256,9 +256,9 @@ namespace LegalSystem.Controllers
             if (entity is null)
                 return StatusCode(result.Status, result);
 
-            var caseTeamIds = unitOfWork.CaseTeamRepository.GetAllQuerable().Where(e => e.CaseId == entity.CaseId).Select(e => e.UserId);
-            if (!currentUser.IsSuperAdmin && !caseTeamIds.Contains(currentUser.UserId))
-                return StatusCode(result.Status, result);
+            //var caseTeamIds = unitOfWork.CaseTeamRepository.GetAllQuerable().Where(e => e.CaseId == entity.CaseId).Select(e => e.UserId);
+            //if (!currentUser.IsSuperAdmin && !caseTeamIds.Contains(currentUser.UserId))
+            //    return StatusCode(result.Status, result);
 
             var fileName = entity.FileName;
             if (string.IsNullOrWhiteSpace(fileName))
@@ -313,13 +313,13 @@ namespace LegalSystem.Controllers
                 Title = "Created"
             };
 
-            var caseTeamIds = unitOfWork.CaseTeamRepository.GetAllQuerable().Where(e => e.CaseId == model.CaseId).Select(e => e.UserId);
-            if (!currentUser.IsSuperAdmin && !caseTeamIds.Contains(currentUser.UserId))
-            {
-                result.Status = (int)ResponseEnum.Unauthorized;
-                result.Title = "Not authorized";
-                return StatusCode(result.Status, result);
-            }
+            //var caseTeamIds = unitOfWork.CaseTeamRepository.GetAllQuerable().Where(e => e.CaseId == model.CaseId).Select(e => e.UserId);
+            //if (!currentUser.IsSuperAdmin && !caseTeamIds.Contains(currentUser.UserId))
+            //{
+            //    result.Status = (int)ResponseEnum.Unauthorized;
+            //    result.Title = "Not authorized";
+            //    return StatusCode(result.Status, result);
+            //}
 
             var baseUrl = FileHelper.GetBaseUrl(
                 fileStorageConfiguration.Host,

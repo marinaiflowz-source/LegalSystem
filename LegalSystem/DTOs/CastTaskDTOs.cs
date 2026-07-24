@@ -6,9 +6,10 @@
         public required string Title { get; set; }
         public required DateTime DueDate { get; set; }
         public int PriorityId { get; set; }
-        public required int StatusId { get; set; }
+        //public required int StatusId { get; set; }
         public long? AssignedUserId { get; set; }
         public int TaskTypeId { get; set; }
+        public string? Note { get; set; }
     }
 
     public class CaseTaskUpdate
@@ -19,6 +20,7 @@
         
         public long? AssignedUserId { get; set; }
         public int? TaskTypeId { get; set; }
+        public string? Note { get; set; }
     }
 
     public class CaseTaskClose
@@ -51,6 +53,8 @@
 
         public ReasonView? Reason { get; set; }
         public RefTaskTypeView TaskType { get; set; }
+        public string? Note { get; set; }
+        
     }
     public class CaseTaskFilter : IQueryObject
     {

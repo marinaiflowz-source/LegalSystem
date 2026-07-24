@@ -10,6 +10,8 @@
 
     public List<ActiveWorkflowDto> ActiveWorkflow { get; set; }
     public List<MonthlyCaseStatisticsDto> MonthlyCaseStatistics { get; set; }
+    public List<UserCaseStatisticsDto> UserCaseStatistics { get; set; }
+        
     }
 
 
@@ -27,6 +29,7 @@
     {
         public string UserName { get; set; }
         public int WonCases { get; set; }
+        public int LostCases { get; set; }
         public int TotalClosedCases { get; set; }
         public decimal WinPercentage { get; set; }
     }
@@ -66,5 +69,26 @@
         public int SettledCases { get; set; }
         public int LostCases { get; set; }
         
+    }
+
+    public class UserCaseStatisticsDto
+    {
+        public int UserId { get; set; }
+
+        public string UserName { get; set; } = string.Empty;
+
+        public int TotalCases { get; set; }
+
+        public int OpenCases { get; set; }
+
+        public int ClosedCases { get; set; }
+
+        public int WonCases { get; set; }
+
+        public int SettledCases { get; set; }
+
+        public int LostCases { get; set; }
+
+        public decimal WinPercentage { get; set; }
     }
 }

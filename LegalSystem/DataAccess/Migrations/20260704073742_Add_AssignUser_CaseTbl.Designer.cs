@@ -4,6 +4,7 @@ using LegalSystem.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LegalSystem.DataAccess.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260704073742_Add_AssignUser_CaseTbl")]
+    partial class Add_AssignUser_CaseTbl
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -450,9 +453,6 @@ namespace LegalSystem.DataAccess.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("CloseReason")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateOnly?>("ClosedDate")
                         .HasColumnType("date");
 
@@ -504,9 +504,6 @@ namespace LegalSystem.DataAccess.Migrations
 
                     b.Property<long?>("MainCaseId")
                         .HasColumnType("bigint");
-
-                    b.Property<string>("Note")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ProjectCode")
                         .HasColumnType("nvarchar(max)");
@@ -786,9 +783,6 @@ namespace LegalSystem.DataAccess.Migrations
 
                     b.Property<bool>("IsClosed")
                         .HasColumnType("bit");
-
-                    b.Property<string>("Note")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("PriorityId")
                         .HasColumnType("int");

@@ -149,6 +149,12 @@ namespace LegalSystem.DTOs
         public long? Id { get; set; }
         public string Name { get; set; } = string.Empty;
     }
+    public class SummaryUserView
+    {
+        public long? Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public long? UserId { get; set; }
+    }
     public class UserSummaryView
     {
         public long Id { get; set; }

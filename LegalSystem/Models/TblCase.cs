@@ -84,6 +84,15 @@ namespace LegalSystem.Models
         public DateOnly? ClosedDate { get; set; }
         public long? MainCaseId { get; set; }
 
+       
+        public long? AssignedUserId { get; set; }
+
+        public string? Note { get; set; }
+        public string? CloseReason { get; set; }
+
+        [ForeignKey(nameof(AssignedUserId))]
+        public TblUser? AssignedUser { get; set; }
+
         [ForeignKey(nameof(MainCaseId))]
         public TblCase? MainCase { get; set; }
         public virtual ICollection<TblCaseTeam> Team { get; set; } = new List<TblCaseTeam>();
